@@ -1,0 +1,10 @@
+streamlit
+pandas
+numpy
+joblib
+scikit-learn
+plotly
+pillow
+fastapi
+requests
+xlsxwriter
