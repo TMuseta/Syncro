@@ -219,10 +219,21 @@ def load_models():
 @st.cache_data
 def load_history():
     try:
-        with open('prediction_history.json', 'r') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return []
+        try:
+            with open('prediction_history.json', 'r') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            # Initialize with empty history if file doesn't exist
+            history = {
+                'predictions': [],
+                'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            with open('prediction_history.json', 'w') as f:
+                json.dump(history, f, indent=4)
+            return history
+    except Exception as e:
+        print(f"Error loading history: {str(e)}")  # Using print instead of st.error
+        return {'predictions': [], 'last_updated': None}  # Return empty history on error
 
 def save_prediction(data, predictions, risk_factors):
     """Save prediction with more comprehensive data"""
@@ -231,10 +242,11 @@ def save_prediction(data, predictions, risk_factors):
         try:
             with open('prediction_history.json', 'r') as f:
                 history = json.load(f)
-                if 'predictions' not in history:
-                    history = {'predictions': [], 'last_updated': None}
         except (FileNotFoundError, json.JSONDecodeError):
-            history = {'predictions': [], 'last_updated': None}
+            history = {
+                'predictions': [],
+                'last_updated': None
+            }
         
         # Create new entry with timestamp
         entry = {
@@ -259,7 +271,7 @@ def save_prediction(data, predictions, risk_factors):
             
         return True
     except Exception as e:
-        st.error(f"Error saving prediction: {str(e)}")
+        print(f"Error saving prediction: {str(e)}")  # Using print instead of st.error
         return False
 
 @st.cache_data
@@ -2072,8 +2084,19 @@ def show_hipaa_warning():
 def implement_data_retention():
     """Implement data retention policy - delete data older than 90 days"""
     try:
-        with open('prediction_history.json', 'r') as f:
-            history = json.load(f)
+        # Create the file if it doesn't exist
+        try:
+            with open('prediction_history.json', 'r') as f:
+                history = json.load(f)
+        except FileNotFoundError:
+            # Initialize with empty history if file doesn't exist
+            history = {
+                'predictions': [],
+                'last_updated': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            with open('prediction_history.json', 'w') as f:
+                json.dump(history, f, indent=4)
+            return  # No need to process retention on empty history
         
         current_time = datetime.now()
         retention_period = timedelta(days=90)
@@ -2089,7 +2112,9 @@ def implement_data_retention():
                 json.dump(history, f, indent=4)
                 
     except Exception as e:
-        st.error(f"Error in data retention: {str(e)}")
+        # Log the error but don't stop the app
+        print(f"Error in data retention: {str(e)}")  # Using print instead of st.error
+        pass  # Continue execution even if there's an error
 
 # Create a separate backend service
 app = FastAPI()
